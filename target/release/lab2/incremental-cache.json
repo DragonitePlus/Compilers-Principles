@@ -1,0 +1,14 @@
+{
+  "packageInformation": {
+    "lab2": {
+      "rootPackageName": "lab2",
+      "fileNameHash": "1356473336746769300",
+      "timeStamp": 1743216152,
+      "buildFlag": true,
+      "exeName": "main",
+      "hasSubPkgs": false
+    }
+  },
+  "jsonHash": "5072389824083389063",
+  "rootPackageName": "lab2"
+}
