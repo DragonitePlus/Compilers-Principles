@@ -1,5 +1,11 @@
 package lab2
 import std.collection.*
+
+/**
+ *  专门测试FOLLOW集合循环依赖的特殊案例
+ *  创建包含S→TB, B→S'B | ε等产生式的测试文法
+ */
+
 public func create_follow_circle_case(){
     // 创建非终结符S
     var name_S:String = "S";

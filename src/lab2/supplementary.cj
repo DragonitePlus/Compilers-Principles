@@ -1,5 +1,11 @@
 package lab2
 import std.collection.*;
+
+/**
+ *  全局数据管理
+ *  维护符号表、产生式表、项集表等核心数据
+ */
+
 // 关于非终结符
 public var getNTS:HashMap<String, NonTerminalSymbol> = HashMap<String, NonTerminalSymbol>();
 // 关于终结符

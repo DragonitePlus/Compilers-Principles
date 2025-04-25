@@ -1,5 +1,12 @@
 package lab2
 import std.collection.*
+
+/**
+ *  算术表达式文法的实现
+ *  创建测试文法（如E→E+T | T）
+ *  构建LR(0)自动机
+ */
+
 // 创建测试样例 文法3.6
 public func test2(){
     // 创建非终结符E'

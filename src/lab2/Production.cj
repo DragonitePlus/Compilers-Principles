@@ -1,5 +1,10 @@
 package lab2 
 import std.collection.*
+
+/**
+ *  定义产生式类 Production
+ *  包含产生式ID、产生式体符号表、FIRST集合等属性
+ */
 public class Production<:Equatable<Production>{
     // 产生式编号
     public var productionId:Int64

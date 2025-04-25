@@ -1,4 +1,9 @@
 package lab2
+
+/**
+ * 终结符类
+ */
+
 public class TerminalSymbol<: GrammarSymbol & Hashable &Equatable<TerminalSymbol>{
     // 也是枚举类型
     public var lemexeCategory:String

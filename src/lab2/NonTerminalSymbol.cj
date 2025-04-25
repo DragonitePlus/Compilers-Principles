@@ -1,5 +1,10 @@
 package lab2
 import std.collection.*
+
+/**
+ * 非终结符类
+ */
+
 public class NonTerminalSymbol<:GrammarSymbol & Hashable & Equatable<NonTerminalSymbol>{
     // 有关非终结符构成的产生式
     public var pProductionTable:ArrayList<Production>

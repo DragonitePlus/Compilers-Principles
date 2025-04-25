@@ -1,4 +1,9 @@
 package lab2
+
+/**
+ *  定义DFA状态转移边
+ */
+
 public class TransitionEdge{
     public var driverSymbol:GrammarSymbol
     public var fromItemSet:ItemSet

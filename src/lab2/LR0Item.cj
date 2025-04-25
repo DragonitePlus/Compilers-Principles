@@ -1,4 +1,10 @@
 package lab2
+
+/**
+ *  定义LR(0)项结构
+ *  包含点的位置和项类型（CORE/NONCORE）
+ */
+
 public class LR0Item<:Equatable<LR0Item> & Hashable{
     public var nonTerminalSymbol:NonTerminalSymbol
     public var production:Production

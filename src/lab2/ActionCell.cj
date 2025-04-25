@@ -1,4 +1,9 @@
 package lab2
+
+/**
+ *  继承Cell类，处理LR分析表的ACTION动作
+ */
+
 public class ActionCell {
     // 状态序号
     public var stateId:Int64

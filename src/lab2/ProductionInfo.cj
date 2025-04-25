@@ -1,4 +1,9 @@
 package lab2
+
+/**
+ *  产生式元信息存储
+ */
+
 public class ProductionInfo{
     public var indexId:Int64
     public var headName:String

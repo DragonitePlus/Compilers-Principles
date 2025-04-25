@@ -1,5 +1,11 @@
 package lab2
 import std.collection.*
+
+/**
+ *  实现FIRST/FOLLOW集合计算
+ *  包含 get_All_NTS_FIRST() 和 get_All_NTS_FOLLOW() 核心算法
+ */
+
 // 展示所有非终结符以及其产生式集合
 public func show_All_nts_production(){
     for(nts in all_NonTerminalSymbol_Set) {

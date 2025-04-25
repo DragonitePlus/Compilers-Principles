@@ -1,5 +1,9 @@
 package lab2
 import std.collection.*
+/**
+ *  定义LR(0)项集类 ItemSet
+ *  实现项集等价判断逻辑，用于DFA状态合并
+ */
 public class ItemSet<:Equatable<ItemSet> & Hashable{
     public var stateId:Int64
     public var pItemTable:ArrayList<LR0Item>

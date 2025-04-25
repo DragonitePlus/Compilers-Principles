@@ -1,6 +1,11 @@
 package lab2
 import std.collection.*;
-// 创建算数运算的文法
+
+/**
+ *  TINY语言的语法分析实现
+ *  包含词法分析器接口和测试用例
+ */
+
 public func create_Arithmetic_Grammar() {
     // 创建非终结符E'
     var nts_E1:NonTerminalSymbol = NonTerminalSymbol("E'","NONTERMINAL");
