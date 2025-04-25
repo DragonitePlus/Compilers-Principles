@@ -1,0 +1,77 @@
+[33mwarning[0m: unused variable:'nfa_f'
+ [36m==>[0m C:\Users\surface\Desktop\Compilers-Principles\src\lab1\src\main.cj:8:9:
+  [36m| [0m
+[36m8[0m [36m| [0m    var nfa_f: Graph = generateBasicNFA(CHAR, UInt32(r'f'))[0m
+  [36m| [0m        [33m^^^^^ unused variable[0m
+  [36m| [0m
+  [36m#[0m [0mnote[0m: this warning can be suppressed by setting the compiler option `-Woff unused`
+
+[33mwarning[0m: unused variable:'nfa_p'
+  [36m==>[0m C:\Users\surface\Desktop\Compilers-Principles\src\lab1\src\main.cj:17:9:
+   [36m| [0m
+[36m17[0m [36m| [0m    var nfa_p: Graph = generateBasicNFA(CHAR, UInt32(r'p'))[0m
+   [36m| [0m        [33m^^^^^ unused variable[0m
+   [36m| [0m
+   [36m#[0m [0mnote[0m: this warning can be suppressed by setting the compiler option `-Woff unused`
+
+[33mwarning[0m: unused variable:'nfa_u'
+  [36m==>[0m C:\Users\surface\Desktop\Compilers-Principles\src\lab1\src\main.cj:18:9:
+   [36m| [0m
+[36m18[0m [36m| [0m    var nfa_u: Graph = generateBasicNFA(CHAR, UInt32(r'u'))[0m
+   [36m| [0m        [33m^^^^^ unused variable[0m
+   [36m| [0m
+   [36m#[0m [0mnote[0m: this warning can be suppressed by setting the compiler option `-Woff unused`
+
+[33mwarning[0m: unused function:'unionChars'
+  [36m==>[0m C:\Users\surface\Desktop\Compilers-Principles\src\lab1\src\CharSet.cj:42:1:
+   [36m| [0m
+[36m42[0m [36m| [0m  func unionChars(c1: Rune, c2: Rune): UInt32 {[0m
+   [36m| [0m [33m_[0m[33m^[0m
+[36m43[0m [36m| [0m[33m|[0m     let newId = charSetCounter[0m
+   [36m| [0m[33m|[0m ...[0m
+[36m48[0m [36m| [0m[33m|[0m }[0m
+   [36m| [0m[33m|[0m[33m_[0m[33m^ unused function[0m
+   [36m| [0m
+   [36m#[0m [0mnote[0m: this warning can be suppressed by setting the compiler option `-Woff unused`
+
+[33mwarning[0m: unused function:'difference'
+   [36m==>[0m C:\Users\surface\Desktop\Compilers-Principles\src\lab1\src\CharSet.cj:81:1:
+    [36m| [0m
+[36m81[0m  [36m| [0m  func difference(charSetId: UInt32, c: Rune): UInt32 {[0m
+    [36m| [0m [33m_[0m[33m^[0m
+[36m82[0m  [36m| [0m[33m|[0m     let newId = charSetCounter[0m
+    [36m| [0m[33m|[0m ...[0m
+[36m107[0m [36m| [0m[33m|[0m }[0m
+    [36m| [0m[33m|[0m[33m_[0m[33m^ unused function[0m
+    [36m| [0m
+    [36m#[0m [0mnote[0m: this warning can be suppressed by setting the compiler option `-Woff unused`
+
+[33mwarning[0m: unused variable:'dfa1'
+   [36m==>[0m C:\Users\surface\Desktop\Compilers-Principles\src\lab1\src\main.cj:186:9:
+    [36m| [0m
+[36m186[0m [36m| [0m    var dfa1: Graph = NFA_to_DFA(id) // 标识符的DFA[0m
+    [36m| [0m        [33m^^^^ unused variable[0m
+    [36m| [0m
+    [36m#[0m [0mnote[0m: this warning can be suppressed by setting the compiler option `-Woff unused`
+
+[33mwarning[0m: unused variable:'dfa2'
+   [36m==>[0m C:\Users\surface\Desktop\Compilers-Principles\src\lab1\src\main.cj:187:9:
+    [36m| [0m
+[36m187[0m [36m| [0m    var dfa2: Graph = NFA_to_DFA(nfa_1) // 整数的DFA[0m
+    [36m| [0m        [33m^^^^ unused variable[0m
+    [36m| [0m
+    [36m#[0m [0mnote[0m: this warning can be suppressed by setting the compiler option `-Woff unused`
+
+[33mwarning[0m: unused function:'zeroOrOneNFA'
+   [36m==>[0m C:\Users\surface\Desktop\Compilers-Principles\src\lab1\src\Graph.cj:428:1:
+    [36m| [0m
+[36m428[0m [36m| [0m  func zeroOrOneNFA(pNFA: Graph): Graph {[0m
+    [36m| [0m [33m_[0m[33m^[0m
+[36m429[0m [36m| [0m[33m|[0m     var hasOutEdges = false[0m
+    [36m| [0m[33m|[0m ...[0m
+[36m509[0m [36m| [0m[33m|[0m }[0m
+    [36m| [0m[33m|[0m[33m_[0m[33m^ unused function[0m
+    [36m| [0m
+    [36m#[0m [0mnote[0m: this warning can be suppressed by setting the compiler option `-Woff unused`
+
+8 warnings generated, 8 warnings printed.
