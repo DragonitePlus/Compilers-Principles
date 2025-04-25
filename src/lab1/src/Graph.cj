@@ -560,14 +560,20 @@ func move(nfa: Graph, stateSet: ArrayList<Int64>, symbol: UInt32): ArrayList<Int
     return result
 }
 
-// epsilonClosure：计算给定状态集合的 ε-闭包
+// epsilonClosure：计算给定状态集合的 ε-闭包（广度优先搜索算法）
 func epsilonClosure(nfa: Graph, stateSet: ArrayList<Int64>): ArrayList<Int64> {
+    // 初始化闭包集合（自动去重）
     var closure: HashSet<Int64> = HashSet<Int64>(stateSet)
     var added = true
+
+    // 广度优先搜索核心循环
     while (added) {
         added = false
         var temp: HashSet<Int64> = closure.clone()
+
+        // 遍历当前闭包中的每个状态
         for (s in closure) {
+            // 遍历NFA中的所有边
             for (e in nfa.pEdgeTable) {
                 var etype : String
                 match (e.etype) {
@@ -575,18 +581,23 @@ func epsilonClosure(nfa: Graph, stateSet: ArrayList<Int64>): ArrayList<Int64> {
                     case CHAR => etype = "CHAR"
                     case CHARSET => etype = "CHARSET"
                 }
+
+                // 处理ε边（空转换）
                 if (e.fromState == s && etype == "NULL") {
+                    // 发现新可达状态
                     if (closure.contains(e.nextState) == false) {
-                        temp.put(e.nextState)
-                        added = true
+                        temp.put(e.nextState) // 添加到临时集合
+                        added = true // 标记有新增状态
                     }
                 }
             }
         }
-        closure = temp
+        closure = temp // 合并新发现的状态
     }
+
+    // 生成排序后的结果列表
     var result: ArrayList<Int64> = ArrayList<Int64>(closure)
-    result.sort()
+    result.sort() // 排序保证结果一致性
     return result
 }
 
@@ -669,14 +680,18 @@ func NFA_to_DFA(nfa: Graph): Graph {
     dfa.addState(dfaStart)
     dfaStateId++
     
+    // 存储临时转换关系
     var dfaTransitions: ArrayList<DFATransition> = ArrayList<DFATransition>()
     
+    // 主处理循环
     while (Q.size != 0) {
         var idx: Int64 = Q[0]
         Q.remove(0)
         marked[idx] = true
+
         // 对于 DFA 状态 idx，对字母表中每个符号计算 DTran
         for (sym in alphabet) {
+            // 计算符号转移后的状态集合
             var targetSet: ArrayList<Int64> = DTran(nfa, dfaStates[idx], sym)
             if (targetSet.isEmpty()) {continue}
             // 排序 targetSet 便于比较
@@ -772,6 +787,7 @@ func tokenize(dfa: Graph, inputStr: String): ArrayList<(String, String)> {
     var startIdx: Int64 = 0      // 当前 Token 起始位置
     var i: Int64 = 0             // 输入字符串索引
     
+    // 主扫描循环
     while (i < inputStr.size) {
         var c: UInt32 = UInt32(inputStr[i])  // 读取当前字符
         // 调用 move 函数：计算当前状态集合在输入字符 c 下的转移
@@ -805,6 +821,7 @@ func tokenize(dfa: Graph, inputStr: String): ArrayList<(String, String)> {
             }
         }
         
+        // 存在有效转移
         if (!nextStates.isEmpty()) {
             // 找到有效转移，则更新当前状态集合并继续向后读取字符
             currentStates = nextStates
@@ -918,132 +935,3 @@ func tokenize(dfa: Graph, inputStr: String): ArrayList<(String, String)> {
     
     return tokens
 }
-
-// // 词法分析函数：根据 DFA 解析字符串并输出 Token 列表 
-// func tokenize(dfa: Graph, inputStr: String): ArrayList<(String, String)> {
-//     var tokens: ArrayList<(String, String)> = ArrayList<(String, String)>()  // 存储 Token
-//     var currentState: Int64 = 0  // DFA 当前状态
-//     var startIdx: Int64 = 0      // 当前 Token 起始位置
-//     var i: Int64 = 0             // 输入字符串索引
-    
-//     while (i < inputStr.size) {
-//         var c: UInt32 = UInt32(inputStr[i])  // 读取当前字符
-//         var nextState: Int64 = -1    // 记录 DFA 的下一个状态
-        
-//         // 遍历 DFA 规则，查找当前状态下的转移
-//         for (e in dfa.pEdgeTable) {
-//             if (e.fromState == currentState && e.driverId == c) {
-//                 nextState = e.nextState
-//                 break
-//             } 
-//             if (e.fromState == currentState && e.driverId < 32) {
-//                 var found: Bool = false
-//                 // 遍历全局字符集表，查找驱动 id 为 e.driverId 的所有段
-//                 for (seg in charSetTable) {
-//                     if (seg.indexId == e.driverId) {
-//                         // 判断当前字符 c 是否在该段的范围内
-//                         if (c >= UInt32(seg.fromChar) && c <= UInt32(seg.toChar)) {
-//                             found = true
-//                             break
-//                         }
-//                     }
-//                 }
-//                 if (found) {
-//                     nextState = e.nextState
-//                     break
-//                 }
-//             }
-//         }
-        
-//         if (nextState != -1) {
-//             // 成功找到转移，进入下一个状态
-//             currentState = nextState
-//             i++
-//         } else {
-//             // 当前字符无法匹配，检查当前状态是否是终态
-//             var isMatch: Bool = false
-//             for (s in dfa.pStateTable) {
-//                 var stype: String
-//                 match (s.stype) {
-//                     case MATCH => stype = "MATCH"
-//                     case UNMATCH => stype = "UNMATCH"
-//                 }
-//                 if (s.stateId == currentState && stype == "MATCH") {
-//                     isMatch = true
-//                     break
-//                 }
-//             }
-            
-//             if (isMatch) {
-//                 // 匹配到一个 Token，使用临时字符串 tokenStr 逐个字符拼接构造 token
-//                 var tokenStr: String = ""
-//                 var category: String = ""
-//                 for (j in startIdx .. i) {
-//                     tokenStr = tokenStr + String(Rune(inputStr[j]))
-//                 }
-//                 for (ns in dfa.pStateTable) {
-//                     if (ns.stateId == currentState) {
-//                         match(ns.category) {
-//                             case LexemeCategory.KEYWORD => category = "KEYWORD"
-//                             case LexemeCategory.ASSIGNMENT => category = "ASSIGNMENT"
-//                             case LexemeCategory.ID => category = "ID"
-//                             case LexemeCategory.INTERGER_CONST => category = "INTERGER_CONST"
-//                             case LexemeCategory.OPERATORS => category = "OPERATORS"
-//                             case LexemeCategory.WHITESPACE => category = "WHITESPACE"
-//                             case _ => category = ""
-//                         }
-//                         break
-//                     }
-//                 }   
-//                 tokens.append((tokenStr, category))
-                
-//                 // 重置匹配状态，尝试解析下一个 Token
-//                 startIdx = i
-//                 currentState = 0
-//             } else {
-//                 // 非法字符处理：跳过或报错
-//                 startIdx = i + 1
-//                 currentState = 0
-//                 i++
-//             }
-//         }
-//     }
-    
-//     // 处理最后一个 Token
-//     var isMatch: Bool = false
-//     for (s in dfa.pStateTable) {
-//         var stype: String
-//         match (s.stype) {
-//             case MATCH => stype = "MATCH"
-//             case UNMATCH => stype = "UNMATCH"
-//         }
-//         if (s.stateId == currentState && stype == "MATCH") {
-//             isMatch = true
-//             break
-//         }
-//     }
-//     if (isMatch) {
-//         var tokenStr: String = ""
-//         var category: String = ""
-//         for (j in startIdx .. i) {
-//             tokenStr = tokenStr + String(Rune(inputStr[j]))
-//         }
-//         for (ns in dfa.pStateTable) {
-//             if (ns.stateId == currentState) {
-//                 match(ns.category) {
-//                     case LexemeCategory.KEYWORD => category = "KEYWORD"
-//                     case LexemeCategory.ASSIGNMENT => category = "ASSIGNMENT"
-//                     case LexemeCategory.ID => category = "ID"
-//                     case LexemeCategory.INTERGER_CONST => category = "INTERGER_CONST"
-//                     case LexemeCategory.OPERATORS => category = "OPERATORS"
-//                     case LexemeCategory.WHITESPACE => category = "WHITESPACE"
-//                     case _ => category = ""
-//                 }
-//                 break
-//             }
-//         }   
-//         tokens.append((tokenStr, category))
-//     }
-    
-//     return tokens
-// }
