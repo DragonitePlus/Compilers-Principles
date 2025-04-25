@@ -7,6 +7,327 @@ import std.collection.*
  *  构建LR(0)自动机
  */
 
+// 计算LR(0)项集的闭包（广度优先搜索算法）
+public func getClosure(itemSet: ItemSet){
+    // 已处理的非终结符集合（防重复）
+    var hasShowSet:HashSet<NonTerminalSymbol> = HashSet<NonTerminalSymbol>();
+    // 待处理的非终结符队列（BFS核心结构）
+    var prepare_queue:ArrayList<NonTerminalSymbol> = ArrayList<NonTerminalSymbol>();
+    // 初始化核心项中的非终结符
+    for(item in itemSet.pItemTable) {
+        // 获取点号后的符号
+        if(item.dotPosition < item.production.pBodySymbolTable.size) {
+            var curr_symbol:GrammarSymbol = item.production.pBodySymbolTable[item.dotPosition];
+            // 只处理非终结符
+            if(curr_symbol is NonTerminalSymbol) {
+                var curr_NTS:NonTerminalSymbol = curr_symbol as NonTerminalSymbol ?? none_NonTerminalSymbol;
+                if(curr_NTS != none_NonTerminalSymbol) {
+                    // 新发现的非终结符加入处理队列
+                    if(!hasShowSet.contains(curr_NTS)) {
+                        prepare_queue.append(curr_NTS);
+                        hasShowSet.put(curr_NTS);  // 标记为已发现
+                    }
+                }
+            } 
+        }
+    }
+
+    // 广度优先展开非终结符
+    while(!prepare_queue.isEmpty()) {
+        // 取出队首NTS
+        var curr_NTS:NonTerminalSymbol = prepare_queue[0];
+        prepare_queue.remove(0);
+
+        // 遍历当前非终结符的所有产生式
+        for(production in curr_NTS.pProductionTable) {
+            // 创建新项（点号在产生式首部）
+            var item:LR0Item = LR0Item(curr_NTS,production,0,"NONCORE"); 
+            itemSet.pItemTable.append(item); // 加入闭包
+
+            // 处理新项的第一个符号（如果还是非终结符）
+            var curr_symbol:GrammarSymbol = production.pBodySymbolTable[0];
+            if(curr_symbol is NonTerminalSymbol) {
+                var temp_NTS:NonTerminalSymbol = curr_symbol as NonTerminalSymbol ?? none_NonTerminalSymbol;
+                if(temp_NTS != none_NonTerminalSymbol) {
+                    // 新发现的非终结符入队
+                    if(!hasShowSet.contains(temp_NTS)) {
+                        prepare_queue.append(temp_NTS);
+                        hasShowSet.put(temp_NTS); // 标记已发现
+                    }
+                }
+            }
+        }
+    }
+}
+
+// LR(0)项集的变迁：穷举出边 ok  后继项集核心项确定以及创建  ok  后继项集是否为新项集 为项集实现equatiable  从L0开始生成整个DFA
+// 穷举所有状态转移，构建LR(0)自动机
+public func exhaustTransition(itemSet0:ItemSet) {
+    var transition_queue:ArrayList<ItemSet> = ArrayList<ItemSet>(); // 状态处理队列（BFS核心）
+    transition_queue.append(itemSet0); // 放入初始项集L0
+
+    // 广度优先遍历所有状态
+    while(!transition_queue.isEmpty()){
+        var itemSet = transition_queue[0];
+        transition_queue.remove(0);
+
+        // 收集驱动文法符号
+        var drive_NTS:HashSet<NonTerminalSymbol> = HashSet<NonTerminalSymbol>(); // 非终结符驱动集合
+        var drive_TS:HashSet<TerminalSymbol> = HashSet<TerminalSymbol>(); // 终结符驱动集合
+
+        for(item in itemSet.pItemTable) {
+            // 可移入项
+            if(item.dotPosition < item.production.pBodySymbolTable.size) {
+                var curr_symbol:GrammarSymbol = item.production.pBodySymbolTable[item.dotPosition];
+                if(curr_symbol is NonTerminalSymbol) { 
+                    // 收集非终结符驱动符
+                    var curr_nts:NonTerminalSymbol = curr_symbol as NonTerminalSymbol ?? none_NonTerminalSymbol;
+                    if(curr_nts != none_NonTerminalSymbol) {
+                        drive_NTS.put(curr_nts);
+                    }
+                } else {
+                    // 收集终结符驱动符
+                    var curr_ts:TerminalSymbol = curr_symbol as TerminalSymbol ?? none_TerminalSymbol;
+                    if(curr_ts != none_TerminalSymbol) {
+                        drive_TS.put(curr_ts);
+                    }
+                }
+            }
+        }
+
+        // 针对非终结符来穷举下一项集
+        for(nts in drive_NTS) {
+            // 创建新的项集
+            var Inew:ItemSet = ItemSet(pItemSetTable.size,ArrayList<LR0Item>());
+
+            // 生成核心项（点号后移）
+            for(item in itemSet.pItemTable) {
+                if(item.dotPosition < item.production.pBodySymbolTable.size) {
+                    var curr_Symbol:GrammarSymbol = item.production.pBodySymbolTable[item.dotPosition];
+                    if(curr_Symbol is NonTerminalSymbol) {
+                        var curr_Nts:NonTerminalSymbol = curr_Symbol as NonTerminalSymbol ?? none_NonTerminalSymbol;
+                        if(curr_Nts != none_NonTerminalSymbol && curr_Nts == nts) {
+                            var new_item:LR0Item = LR0Item(item.nonTerminalSymbol,item.production,item.dotPosition+1,"CORE");
+                            Inew.pItemTable.append(new_item); // 添加核心项
+                        }
+                    }
+                }
+            }
+
+            if(!contains(Inew)) {
+                // 新状态检查
+                getClosure(Inew); // 计算闭包
+                pItemSetTable.append(Inew); // 注册新状态
+                transition_queue.append(Inew); // 加入处理队列
+            }
+            pTransitionEdgeTable.append(TransitionEdge(nts,itemSet,Inew)); // 记录转移边
+        }
+        // 针对终结符来穷举下一项集
+        for(ts in drive_TS) {
+            // 创建新的项集
+            var Inew:ItemSet = ItemSet(pItemSetTable.size,ArrayList<LR0Item>());
+            for(item in itemSet.pItemTable) {
+                if(item.dotPosition < item.production.pBodySymbolTable.size) {
+                    var curr_Symbol:GrammarSymbol = item.production.pBodySymbolTable[item.dotPosition];
+                    if(curr_Symbol is TerminalSymbol) {
+                        var curr_Ts:TerminalSymbol = curr_Symbol as TerminalSymbol ?? none_TerminalSymbol;
+                        if(curr_Ts != none_TerminalSymbol && curr_Ts == ts) {
+                            var new_item:LR0Item = LR0Item(item.nonTerminalSymbol,item.production,item.dotPosition+1,"CORE");
+                            Inew.pItemTable.append(new_item);
+                        }
+                    }
+                }
+            }
+            if(!contains(Inew)) {
+                getClosure(Inew);
+                pItemSetTable.append(Inew);
+                transition_queue.append(Inew);
+            }
+            pTransitionEdgeTable.append(TransitionEdge(ts,itemSet,Inew));
+        }        
+    }
+}
+
+// 检查项集是否已经出现
+public func contains(itemSet:ItemSet):Bool {
+    for(iS in pItemSetTable) {
+        if(iS == itemSet) {
+            itemSet.stateId = iS.stateId;
+            return true;
+        }
+    }
+    return false;
+}
+
+// 判断文法是否为SLR(1)文法
+public func judge_SLR1():Bool {
+    for(itemSet in pItemSetTable) {
+        // 遍历所有LR(0)项集
+        var all_Set:ArrayList<HashSet<TerminalSymbol>> = ArrayList<HashSet<TerminalSymbol>>(); // 存储可能冲突的终结符集合
+        var drive_nt_set:HashSet<TerminalSymbol> = HashSet<TerminalSymbol>(); // 移进动作的终结符集合
+        all_Set.append(drive_nt_set);
+        for(item in itemSet.pItemTable) { // 遍历项集中的每个项目
+            // 可移进项处理
+            if(item.dotPosition < item.production.pBodySymbolTable.size) {
+                // 点号不在产生式末尾
+                var currSymbol:GrammarSymbol = item.production.pBodySymbolTable[item.dotPosition];
+                // 找终结符的集合
+                if(currSymbol is TerminalSymbol) {
+                    var currTs:TerminalSymbol = currSymbol as TerminalSymbol ?? none_TerminalSymbol;
+                    if(currTs != none_TerminalSymbol) {
+                        drive_nt_set.put(currTs); // 收集移进动作的终结符
+                    }
+                }
+            }
+            // 可规约项处理
+            else {
+                var currNts:NonTerminalSymbol = item.nonTerminalSymbol;
+                all_Set.append(currNts.pFollowSet); // 添加规约项的FOLLOW集合
+            }
+        } 
+
+        // 检测冲突
+        var hasSame:Bool = judgeSetHasUnion(all_Set);
+        if(hasSame) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// 判断一群集合中是否两两之间存在交集作为FOLLOW消解冲突的依据（双重循环）
+public func judgeSetHasUnion(tsSet:ArrayList<HashSet<TerminalSymbol>>):Bool{
+    var i:Int64 = 0;
+    while(i<tsSet.size) {
+        var j:Int64 = i + 1;
+        var currTsSet:HashSet<TerminalSymbol> = tsSet[i];
+        while(j<tsSet.size) {
+            var anotherTsSet:HashSet<TerminalSymbol> = tsSet[j];
+            for(tsA in currTsSet) {
+                if(anotherTsSet.contains(tsA)) {
+                    // 发现交集元素
+                    return true;
+                }
+            }
+            j++;// 下一个对比集合
+        }
+        i++;// 下一个主集合
+    }
+    return false;
+}
+
+// 填写LR语法分析表
+public func create_LR1_Analysis_Table(){
+    // 先得到acc状态
+    var accItemSet:ItemSet = getAcc();
+
+    // 初始化ACTION和GOTO表
+    for(itemSet in pItemSetTable) {
+        pActionCellTable.put(itemSet,HashMap<TerminalSymbol, ActionCell>()); // 每个状态的ACTION表
+        pGOTOCellTable.put(itemSet,HashMap<NonTerminalSymbol, GotoCell>()); // 每个状态的GOTO表
+    }
+    // 状态转换可以通过遍历TransactionEdge来实现（生成移进和GOTO动作）
+    for(edge in pTransitionEdgeTable) {
+        var currGS:GrammarSymbol = edge.driverSymbol;
+        // 若是终结符则存入ACTION
+        if(currGS is TerminalSymbol) {
+            var currTS:TerminalSymbol = currGS as TerminalSymbol ?? none_TerminalSymbol;
+            if(currTS != none_TerminalSymbol) {
+                // 创建移进动作（s+目标状态）
+                var new_ac:ActionCell = ActionCell(edge.fromItemSet.stateId,edge.driverSymbol.name,"s",edge.toItemSet.stateId);
+                // 特殊处理接受状态
+                if(edge.toItemSet.stateId == accItemSet.stateId) {
+                    new_ac.actionType = "acc"; // 标记为接受动作
+                }
+                pActionCellTable[edge.fromItemSet].put(currTS,new_ac)
+            }
+        }
+        // 非终结符处理（写入GOTO表）
+        else {
+            var currNTS:NonTerminalSymbol = currGS as NonTerminalSymbol ?? none_NonTerminalSymbol;
+            if(currNTS != none_NonTerminalSymbol) {
+                var new_gt:GotoCell = GotoCell(edge.fromItemSet.stateId,currNTS.name,edge.toItemSet.stateId);
+                pGOTOCellTable[edge.fromItemSet].put(currNTS,new_gt);
+            }
+        }
+    }
+    // 规约需要通过遍历ITEMSET中的规约项来实现
+    for(itemSet in pItemSetTable) {
+        for(item in itemSet.pItemTable) {
+            // 检测规约项（点号在产生式末尾）
+            if(item.dotPosition == item.production.pBodySymbolTable.size) {
+                var currHeadNTS:NonTerminalSymbol = item.nonTerminalSymbol;
+                // 遍历FOLLOW集添加规约动作
+                for(ts in currHeadNTS.pFollowSet) {
+                    var new_ac:ActionCell = ActionCell(itemSet.stateId,ts.name,"r",item.production.productionId);
+                    pActionCellTable[itemSet].put(ts,new_ac);
+                }
+            }
+        }
+    }
+}
+
+// 得到最终acc状态
+public func getAcc():ItemSet {
+    var accItemSet:ItemSet = pItemSetTable[0];
+    for(itemSet in pItemSetTable) {
+        if(itemSet.pItemTable.size == 1 && itemSet.pItemTable[0].dotPosition == itemSet.pItemTable[0].production.pBodySymbolTable.size && itemSet.pItemTable[0].production.pBodySymbolTable[itemSet.pItemTable[0].dotPosition-1].name == "$") {
+            accItemSet = itemSet;
+            return accItemSet;
+        }
+    }
+    return accItemSet;
+}
+
+// 展示所有项集内容
+public func show_All_itemSet(){
+    for(iS in pItemSetTable) {
+        println("L${iS.stateId} :")
+        show_ItemSet(iS);
+        println();
+    }
+}
+
+// 展示一个项集
+public func show_ItemSet(itemSet: ItemSet) {
+    // 先展示核心项
+    for(item in itemSet.pItemTable) {
+        if(item.itemType == "CORE") {
+            print("${item.nonTerminalSymbol.name} ->");
+            var i:Int64 = 0;
+            while(i<item.production.pBodySymbolTable.size) {
+                if(i == item.dotPosition) {
+                    print(" ·");
+                }
+                print(" ${item.production.pBodySymbolTable[i].name}");
+                i++;
+            }
+            if(i == item.dotPosition) {
+                print(" ·");
+            }
+            println("     CORE");
+        }
+    }
+    // 再展示非核心项
+    for(item in itemSet.pItemTable) {
+        if(item.itemType == "NONCORE") {
+            print("${item.nonTerminalSymbol.name} ->");
+            var i:Int64 = 0;
+            while(i<item.production.pBodySymbolTable.size) {
+                if(i == item.dotPosition) {
+                    print(" ·");
+                }
+                print(" ${item.production.pBodySymbolTable[i].name}");
+                i++;
+            }
+            if(i == item.dotPosition) {
+                print(" ·");
+            }
+            println("     NONCORE");
+        }
+    }
+}
+
 // 创建测试样例 文法3.6
 public func test2(){
     // 创建非终结符E'
@@ -203,6 +524,7 @@ public func test2(){
     // 展示所有非终结符的FOLLOW
     show_All_NTS_FOLLOW();
 }
+
 // 针对第二题的第一小题测试样例
 public func test2_1(){
     // 其中非终结符的顺序是 E' E T F
@@ -219,184 +541,7 @@ public func test2_1(){
     exhaustTransition(I0);
     show_All_itemSet();
 }
-// 展示所有项集内容
-public func show_All_itemSet(){
-    for(iS in pItemSetTable) {
-        println("L${iS.stateId} :")
-        show_ItemSet(iS);
-        println();
-    }
-}
-// 一个项集中LR(0)核心项的闭包求解
-public func getClosure(itemSet: ItemSet){
-    // 已经出现过的NTS集合
-    var hasShowSet:HashSet<NonTerminalSymbol> = HashSet<NonTerminalSymbol>();
-    // 队首是正在进行筛选的NTS集合(想要加入队伍 必须没有出现过)
-    var prepare_queue:ArrayList<NonTerminalSymbol> = ArrayList<NonTerminalSymbol>();
-    // 初始化队列
-    for(item in itemSet.pItemTable) {
-        // 不可以越界
-        if(item.dotPosition < item.production.pBodySymbolTable.size) {
-            var curr_symbol:GrammarSymbol = item.production.pBodySymbolTable[item.dotPosition];
-            // 如果当前符号是非终结符才会操作
-            if(curr_symbol is NonTerminalSymbol) {
-                var curr_NTS:NonTerminalSymbol = curr_symbol as NonTerminalSymbol ?? none_NonTerminalSymbol;
-                if(curr_NTS != none_NonTerminalSymbol) {
-                    if(!hasShowSet.contains(curr_NTS)) {
-                        prepare_queue.append(curr_NTS);
-                        hasShowSet.put(curr_NTS);
-                    }
-                }
-            } 
-        }
-    }
-    while(!prepare_queue.isEmpty()) {
-        // 取出队首NTS
-        var curr_NTS:NonTerminalSymbol = prepare_queue[0];
-        prepare_queue.remove(0);
-        for(production in curr_NTS.pProductionTable) {
-            // 插入非核心项
-            var item:LR0Item = LR0Item(curr_NTS,production,0,"NONCORE");
-            itemSet.pItemTable.append(item);
-            // 针对此项继续展开
-            var curr_symbol:GrammarSymbol = production.pBodySymbolTable[0];
-            if(curr_symbol is NonTerminalSymbol) {
-                var temp_NTS:NonTerminalSymbol = curr_symbol as NonTerminalSymbol ?? none_NonTerminalSymbol;
-                if(temp_NTS != none_NonTerminalSymbol) {
-                    // 添加进队列
-                    if(!hasShowSet.contains(temp_NTS)) {
-                        prepare_queue.append(temp_NTS);
-                        hasShowSet.put(temp_NTS);
-                    }
-                }
-            }
-        }
-    }
-}
-// 展示一个项集
-public func show_ItemSet(itemSet: ItemSet) {
-    // 先展示核心项
-    for(item in itemSet.pItemTable) {
-        if(item.itemType == "CORE") {
-            print("${item.nonTerminalSymbol.name} ->");
-            var i:Int64 = 0;
-            while(i<item.production.pBodySymbolTable.size) {
-                if(i == item.dotPosition) {
-                    print(" ·");
-                }
-                print(" ${item.production.pBodySymbolTable[i].name}");
-                i++;
-            }
-            if(i == item.dotPosition) {
-                print(" ·");
-            }
-            println("     CORE");
-        }
-    }
-    // 再展示非核心项
-    for(item in itemSet.pItemTable) {
-        if(item.itemType == "NONCORE") {
-            print("${item.nonTerminalSymbol.name} ->");
-            var i:Int64 = 0;
-            while(i<item.production.pBodySymbolTable.size) {
-                if(i == item.dotPosition) {
-                    print(" ·");
-                }
-                print(" ${item.production.pBodySymbolTable[i].name}");
-                i++;
-            }
-            if(i == item.dotPosition) {
-                print(" ·");
-            }
-            println("     NONCORE");
-        }
-    }
-}
-// LR(0)项集的变迁：穷举出边 ok  后继项集核心项确定以及创建  ok  后继项集是否为新项集 为项集实现equatiable  从L0开始生成整个DFA
-public func exhaustTransition(itemSet0:ItemSet) {
-    var transition_queue:ArrayList<ItemSet> = ArrayList<ItemSet>();
-    transition_queue.append(itemSet0);
-    while(!transition_queue.isEmpty()){
-        var itemSet = transition_queue[0];
-        transition_queue.remove(0);
-        var drive_NTS:HashSet<NonTerminalSymbol> = HashSet<NonTerminalSymbol>();
-        var drive_TS:HashSet<TerminalSymbol> = HashSet<TerminalSymbol>();
-        // 收集驱动文法符
-        for(item in itemSet.pItemTable) {
-            // 必须是没有到最后
-            if(item.dotPosition < item.production.pBodySymbolTable.size) {
-                var curr_symbol:GrammarSymbol = item.production.pBodySymbolTable[item.dotPosition];
-                if(curr_symbol is NonTerminalSymbol) {
-                    var curr_nts:NonTerminalSymbol = curr_symbol as NonTerminalSymbol ?? none_NonTerminalSymbol;
-                    if(curr_nts != none_NonTerminalSymbol) {
-                        drive_NTS.put(curr_nts);
-                    }
-                } else {
-                    var curr_ts:TerminalSymbol = curr_symbol as TerminalSymbol ?? none_TerminalSymbol;
-                    if(curr_ts != none_TerminalSymbol) {
-                        drive_TS.put(curr_ts);
-                    }
-                }
-            }
-        }
-        // 针对非终结符来穷举下一项集
-        for(nts in drive_NTS) {
-            // 创建新的项集
-            var Inew:ItemSet = ItemSet(pItemSetTable.size,ArrayList<LR0Item>());
-            for(item in itemSet.pItemTable) {
-                if(item.dotPosition < item.production.pBodySymbolTable.size) {
-                    var curr_Symbol:GrammarSymbol = item.production.pBodySymbolTable[item.dotPosition];
-                    if(curr_Symbol is NonTerminalSymbol) {
-                        var curr_Nts:NonTerminalSymbol = curr_Symbol as NonTerminalSymbol ?? none_NonTerminalSymbol;
-                        if(curr_Nts != none_NonTerminalSymbol && curr_Nts == nts) {
-                            var new_item:LR0Item = LR0Item(item.nonTerminalSymbol,item.production,item.dotPosition+1,"CORE");
-                            Inew.pItemTable.append(new_item);
-                        }
-                    }
-                }
-            }
-            if(!contains(Inew)) {
-                getClosure(Inew);
-                pItemSetTable.append(Inew);
-                transition_queue.append(Inew);
-            }
-            pTransitionEdgeTable.append(TransitionEdge(nts,itemSet,Inew));
-        }
-        // 针对终结符来穷举下一项集
-        for(ts in drive_TS) {
-            // 创建新的项集
-            var Inew:ItemSet = ItemSet(pItemSetTable.size,ArrayList<LR0Item>());
-            for(item in itemSet.pItemTable) {
-                if(item.dotPosition < item.production.pBodySymbolTable.size) {
-                    var curr_Symbol:GrammarSymbol = item.production.pBodySymbolTable[item.dotPosition];
-                    if(curr_Symbol is TerminalSymbol) {
-                        var curr_Ts:TerminalSymbol = curr_Symbol as TerminalSymbol ?? none_TerminalSymbol;
-                        if(curr_Ts != none_TerminalSymbol && curr_Ts == ts) {
-                            var new_item:LR0Item = LR0Item(item.nonTerminalSymbol,item.production,item.dotPosition+1,"CORE");
-                            Inew.pItemTable.append(new_item);
-                        }
-                    }
-                }
-            }
-            if(!contains(Inew)) {
-                getClosure(Inew);
-                pItemSetTable.append(Inew);
-                transition_queue.append(Inew);
-            }
-            pTransitionEdgeTable.append(TransitionEdge(ts,itemSet,Inew));
-        }        
-    }
-}
-// 检查项集是否已经出现
-public func contains(itemSet:ItemSet):Bool {
-    for(iS in pItemSetTable) {
-        if(iS == itemSet) {
-            itemSet.stateId = iS.stateId;
-            return true;
-        }
-    }
-    return false;
-}
+
 // 针对第2题 第4问进行测试
 public func test2_4(){
     var isSLR1:Bool = judge_SLR1();
@@ -405,69 +550,7 @@ public func test2_4(){
         println("当前文法是SLR1文法");
     }
 }
-// 判断文法是否为SLR(1)文法
-public func judge_SLR1():Bool {
-    for(itemSet in pItemSetTable) {
-        var all_Set:ArrayList<HashSet<TerminalSymbol>> = ArrayList<HashSet<TerminalSymbol>>();
-        var drive_nt_set:HashSet<TerminalSymbol> = HashSet<TerminalSymbol>();
-        all_Set.append(drive_nt_set);
-        for(item in itemSet.pItemTable) {
-            // 可以移入项
-            if(item.dotPosition < item.production.pBodySymbolTable.size) {
-                var currSymbol:GrammarSymbol = item.production.pBodySymbolTable[item.dotPosition];
-                // 找终结符的集合
-                if(currSymbol is TerminalSymbol) {
-                    var currTs:TerminalSymbol = currSymbol as TerminalSymbol ?? none_TerminalSymbol;
-                    if(currTs != none_TerminalSymbol) {
-                        drive_nt_set.put(currTs);
-                    }
-                }
-            }
-            // 可以规约项
-            else {
-                var currNts:NonTerminalSymbol = item.nonTerminalSymbol;
-                all_Set.append(currNts.pFollowSet);
-            }
-        } 
-        // 再判断集合中是否存在交集
-        // println("当前项集 ${itemSet.stateId} 不同的follow以及驱动非终结符集合:")
-        // for(nextSet in all_Set) {
-        //     for(tS in nextSet) {
-        //         print("${tS.name} ");
-        //     }
-        //     println();
-        // }
-        var hasSame:Bool = judgeSetHasUnion(all_Set);
-        // if(hasSame) {
-        //     println("当前项集I${itemSet.stateId}有无法消极的冲突");
-        // } else {
-        //     println("当前项集I${itemSet.stateId}不存在通过FOLLOW无法消极的冲突");
-        // }
-        if(hasSame) {
-            return false;
-        }
-    }
-    return true;
-}
-// 判断一群集合中是否两两之间存在交集作为FOLLOW消解冲突的依据
-public func judgeSetHasUnion(tsSet:ArrayList<HashSet<TerminalSymbol>>):Bool{
-    var i:Int64 = 0;
-    while(i<tsSet.size) {
-        var j:Int64 = i + 1;
-        var currTsSet:HashSet<TerminalSymbol> = tsSet[i];
-        while(j<tsSet.size) {
-            var anotherTsSet:HashSet<TerminalSymbol> = tsSet[j];
-            for(tsA in currTsSet) {
-                if(anotherTsSet.contains(tsA)) {
-                    return false;
-                }
-            }
-            j++;
-        }
-        i++;
-    }
-    return false;
-}
+
 // 针对第2题 第5问进行测试
 public func test2_5(){
     create_LR1_Analysis_Table();
@@ -486,63 +569,7 @@ public func test2_5(){
     println("${pGOTOCellTable[pItemSetTable[4]][getNTS["T"]].nextStateId}");
     println();
 }
-// 填写LR语法分析表
-public func create_LR1_Analysis_Table(){
-    // 先得到acc状态
-    var accItemSet:ItemSet = getAcc();
-    // 先创建表格
-    for(itemSet in pItemSetTable) {
-        pActionCellTable.put(itemSet,HashMap<TerminalSymbol, ActionCell>());
-        pGOTOCellTable.put(itemSet,HashMap<NonTerminalSymbol, GotoCell>());
-    }
-    // 状态转换可以通过遍历TransactionEdge来实现
-    for(edge in pTransitionEdgeTable) {
-        var currGS:GrammarSymbol = edge.driverSymbol;
-        // 若是终结符则存入ACTION
-        if(currGS is TerminalSymbol) {
-            var currTS:TerminalSymbol = currGS as TerminalSymbol ?? none_TerminalSymbol;
-            if(currTS != none_TerminalSymbol) {
-                var new_ac:ActionCell = ActionCell(edge.fromItemSet.stateId,edge.driverSymbol.name,"s",edge.toItemSet.stateId);
-                if(edge.toItemSet.stateId == accItemSet.stateId) {
-                    new_ac.actionType = "acc";
-                }
-                pActionCellTable[edge.fromItemSet].put(currTS,new_ac)
-            }
-        }
-        // 否则存入GOTO
-        else {
-            var currNTS:NonTerminalSymbol = currGS as NonTerminalSymbol ?? none_NonTerminalSymbol;
-            if(currNTS != none_NonTerminalSymbol) {
-                var new_gt:GotoCell = GotoCell(edge.fromItemSet.stateId,currNTS.name,edge.toItemSet.stateId);
-                pGOTOCellTable[edge.fromItemSet].put(currNTS,new_gt);
-            }
-        }
-    }
-    // 规约需要通过遍历ITEMSET中的规约项来实现
-    for(itemSet in pItemSetTable) {
-        for(item in itemSet.pItemTable) {
-            // 属于是规约项
-            if(item.dotPosition == item.production.pBodySymbolTable.size) {
-                var currHeadNTS:NonTerminalSymbol = item.nonTerminalSymbol;
-                for(ts in currHeadNTS.pFollowSet) {
-                    var new_ac:ActionCell = ActionCell(itemSet.stateId,ts.name,"r",item.production.productionId);
-                    pActionCellTable[itemSet].put(ts,new_ac);
-                }
-            }
-        }
-    }
-}
-// 得到最终acc状态
-public func getAcc():ItemSet {
-    var accItemSet:ItemSet = pItemSetTable[0];
-    for(itemSet in pItemSetTable) {
-        if(itemSet.pItemTable.size == 1 && itemSet.pItemTable[0].dotPosition == itemSet.pItemTable[0].production.pBodySymbolTable.size && itemSet.pItemTable[0].production.pBodySymbolTable[itemSet.pItemTable[0].dotPosition-1].name == "$") {
-            accItemSet = itemSet;
-            return accItemSet;
-        }
-    }
-    return accItemSet;
-}
+
 public func test2_6() {
     var testStringArray:ArrayList<String> = ArrayList<String>();
     testStringArray.append("(");

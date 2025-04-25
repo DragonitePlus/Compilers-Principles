@@ -1,7 +1,9 @@
 package lab2
 import std.collection.*
 main(): Int64 {
-    testTask3();
+    //testTask1();
+    //testTask2();
+    //testTask3();
     return 0
 }
 // 测试第一题

@@ -672,7 +672,15 @@ public func create_TINY_LR0_DFA() {
     println("当前有产生式${all_Production_Set.size}个");
     println()
 }
-// TINY测试样例1
+
+
+/**
+ *  TINY测试样例1
+ *  repeat
+ *      x := y * 100   // 测试算术表达式解析
+ *  until 
+ *      x = 100        // 测试比较运算符
+ */
 public func test_TINY1() {
     var testGrammarSequence:ArrayList<String> = ArrayList<String>();
     testGrammarSequence.append("repeat");
@@ -688,7 +696,13 @@ public func test_TINY1() {
     testGrammarSequence.append("$");
     judge_Sentence_LR_Grammar(testGrammarSequence);
 }
-// TINY测试样例2
+
+/**
+ *  TINY测试样例2
+ *  read x;            // 测试输入语句
+ *  y := x - 100;      // 测试减法运算
+ *  write y            // 测试输出语句
+ */
 public func test_TINY2() {
     var testGrammarSequence:ArrayList<String> = ArrayList<String>();
     testGrammarSequence.append("read");
@@ -705,7 +719,19 @@ public func test_TINY2() {
     testGrammarSequence.append("$");
     judge_Sentence_LR_Grammar(testGrammarSequence);
 }
-// TINY测试样例3
+
+/**
+ *  TINY测试样例3
+ *  read x;            // 测试输入语句
+ *  if 0 < x then      // 测试if条件判断
+ *      fact := 1;     // 初始化变量
+ *      repeat
+ *          fact := fact * x  // 累乘计算
+ *          x := x - 1        // 递减计数器
+ *      until x = 0           // 终止条件
+ *      write fact            // 输出结果
+ *  end
+ */
 public func test_TINY3() {
     var testGrammarSequence:ArrayList<String> = ArrayList<String>();
     testGrammarSequence.append("read"); // read
