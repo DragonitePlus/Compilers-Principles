@@ -361,8 +361,8 @@ func closureNFA(pNFA: Graph): Graph {
             g.addEdge(e)
         }
         // 添加两条空转换的边，头状态到尾状态之间     
-        g.addEdge(Edge(0, maxState, 0, NULL))
-        g.addEdge(Edge(maxState, 0, 0, NULL))
+        g.addEdge(Edge(0, maxState, 0, NULL)) // 初始→接受
+        g.addEdge(Edge(maxState, 0, 0, NULL)) // 接受→初始
         return g
     } 
     //原NFA没有入边但有出边
@@ -378,9 +378,9 @@ func closureNFA(pNFA: Graph): Graph {
             g.addEdge(e)
         }
         // 添加三条空转换的边，头状态到尾状态之间     
-        g.addEdge(Edge(0, maxState, 0, NULL))
-        g.addEdge(Edge(maxState-1, 0, 0, NULL))
-        g.addEdge(Edge(maxState-1, maxState, 0, NULL))
+        g.addEdge(Edge(0, maxState, 0, NULL)) // 初始→接受
+        g.addEdge(Edge(maxState-1, 0, 0, NULL)) // 原接受→初始
+        g.addEdge(Edge(maxState-1, maxState, 0, NULL)) // 初始→新接受
         return g
     } 
     //原NFA有入边但无出边
@@ -395,9 +395,9 @@ func closureNFA(pNFA: Graph): Graph {
             g.addEdge(Edge(e.fromState+1, e.nextState+1, e.driverId, e.etype))  
         }
                 // 添加三条空转换的边，头状态到尾状态之间     
-        g.addEdge(Edge(0, 1, 0, NULL))
-        g.addEdge(Edge(0, maxState, 0, NULL))
-        g.addEdge(Edge(maxState, 1, 0, NULL))
+        g.addEdge(Edge(0, 1, 0, NULL)) // 新初始→原初始
+        g.addEdge(Edge(0, maxState, 0, NULL)) // 新初始→新接受
+        g.addEdge(Edge(maxState, 1, 0, NULL)) // 接受→初始
         return g
 
     }
@@ -415,10 +415,10 @@ func closureNFA(pNFA: Graph): Graph {
             g.addEdge(Edge(e.fromState+1, e.nextState+1, e.driverId, e.etype))  
         }
                 // 添加三条空转换的边，头状态到尾状态之间     
-        g.addEdge(Edge(0, 1, 0, NULL))
-        g.addEdge(Edge(0, maxState, 0, NULL))
-        g.addEdge(Edge(maxState-1, 1, 0, NULL))
-        g.addEdge(Edge(maxState-1, maxState, 0, NULL))
+        g.addEdge(Edge(0, 1, 0, NULL)) // 新初始→原初始
+        g.addEdge(Edge(0, maxState, 0, NULL)) // 新初始→新接受
+        g.addEdge(Edge(maxState-1, 1, 0, NULL)) // 原接受→原初始
+        g.addEdge(Edge(maxState-1, maxState, 0, NULL)) // 初始→新接受
         return g
 
     }
